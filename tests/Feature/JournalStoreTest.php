@@ -64,7 +64,7 @@ class JournalStoreTest extends TestCase
         $journal = Journal::find('1');
         $journal->title = 'Updated Journal Entry';
         $journal->content = 'This is the updated content of my first journal entry.';
-        $result = $journal->save();
+        $result = $journal->update();
 
         $this->assertTrue($result);
 
@@ -72,6 +72,92 @@ class JournalStoreTest extends TestCase
         $updatedJournal = Journal::find('1');
         $this->assertEquals('Updated Journal Entry', $updatedJournal->title);
         $this->assertEquals('This is the updated content of my first journal entry.', $updatedJournal->content);
+    }
+
+    public function testSelect()
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $journal = new Journal();
+            $journal->id = "$i"; // Generate a UUID for the primary key
+            $journal->title = "Journal Entry $i";
+            $journal->save();
+        }
+
+        $journal = Journal::query()->whereNull('content')->get();
+        $this->assertEquals(5, $journal->count());
+        $journal->each(function ($journal) {
+            $this->assertNull($journal->content);
+        });
+    }
+
+    public function testUpdateSelectResult()
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $journal = new Journal();
+            $journal->id = "$i"; // Generate a UUID for the primary key
+            $journal->title = "Journal Entry $i";
+            $journal->save();
+        }
+        $journal = Journal::query()->whereNull('content')->get();
+        $this->assertEquals(5, $journal->count());
+        $journal->each(function ($journal) {
+            $journal->content = 'updated content';
+            $result = $journal->update();
+            $this->assertTrue($result);
+        });
+    }
+
+    public function testUpdatedMany()
+    {
+        $journals = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $journals[] = [
+                'id' => "$i",
+                 'title' => 'Journal Entry ' . $i,
+            ];
+    }
+        $result = Journal::query()->insert($journals);
+        $this->assertTrue($result);
+
+        Journal::query()->whereNull('content')->update(['content' => 'updated content']);
+        $total = Journal::query()->where('content', 'updated content')->count();
+        $this->assertEquals(10, $total);
+}
+
+    public function testDelete()
+    {
+        $this->seed(JournalSeeder::class);
+        $journal = Journal::find('1');
+        $result = $journal->delete();
+
+        $this->assertTrue($result);
+
+        // Verify that the journal was deleted
+        $deletedJournal = Journal::find('1');
+        $total = Journal::query()->count();
+        $this->assertEquals(0, $total);
+        $this->assertNull($deletedJournal);
+    }
+
+    public function testDeleteMany()
+    {
+        $journals = [];
+        for ($i = 0; $i < 10; $i++) {
+            $journals[] = [
+                'id' => "$i",
+                'title' => "Journal Entry $i"
+            ];
+        }
+        $result = Journal::insert($journals);
+        $this->assertTrue($result);
+
+        $total = Journal::count();
+        $this->assertEquals(10, $total);
+
+        Journal::query()->whereNull('content')->delete();
+
+        $total = Journal::query()->count();
+        $this->assertEquals(0, $total);
     }
 
 
