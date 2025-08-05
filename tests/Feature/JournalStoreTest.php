@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Journal;
+use App\Models\Scopes\IsActiveScope;
 use Database\Seeders\JournalSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -35,6 +36,7 @@ class JournalStoreTest extends TestCase
                 'id' => (string) Str::uuid(), // Generate a UUID for the primary key
                 'title' => 'Journal Entry ' . $i,
                 'content' => 'This is the content of journal entry ' . $i,
+                'is_active' => true, // Set the is_active status
             ];
         }
 
@@ -55,6 +57,7 @@ class JournalStoreTest extends TestCase
         $this->assertNotNull($journal);
         $this->assertEquals('My First Journal Entry', $journal->title);
         $this->assertEquals('This is the content of my first journal entry.', $journal->content);
+        
 
     }
 
@@ -80,6 +83,7 @@ class JournalStoreTest extends TestCase
             $journal = new Journal();
             $journal->id = "$i"; // Generate a UUID for the primary key
             $journal->title = "Journal Entry $i";
+            $journal->is_active = true;
             $journal->save();
         }
 
@@ -96,6 +100,7 @@ class JournalStoreTest extends TestCase
             $journal = new Journal();
             $journal->id = "$i"; // Generate a UUID for the primary key
             $journal->title = "Journal Entry $i";
+            $journal->is_active = true; // Set the is_active status
             $journal->save();
         }
         $journal = Journal::query()->whereNull('content')->get();
@@ -114,6 +119,7 @@ class JournalStoreTest extends TestCase
             $journals[] = [
                 'id' => "$i",
                  'title' => 'Journal Entry ' . $i,
+                 'is_active' => true, // Set the is_active status
             ];
     }
         $result = Journal::query()->insert($journals);
@@ -145,7 +151,8 @@ class JournalStoreTest extends TestCase
         for ($i = 0; $i < 10; $i++) {
             $journals[] = [
                 'id' => "$i",
-                'title' => "Journal Entry $i"
+                'title' => "Journal Entry $i",
+                'is_active' => true, // Set the is_active status
             ];
         }
         $result = Journal::insert($journals);
@@ -158,6 +165,99 @@ class JournalStoreTest extends TestCase
 
         $total = Journal::query()->count();
         $this->assertEquals(0, $total);
+    }
+
+    public function testDefaultAttributeValues()
+    {
+        $journal = new Journal();
+        $journal->id = (string) Str::uuid(); // Generate a UUID for the primary key
+        $journal->save();
+
+        $this->assertEquals('Sample Title', $journal->title);
+        
+    }
+
+    public function testCreateMethod()
+    {
+        $request = [
+            'title' => 'Test Journal Entry',
+            'content' => 'This is a test journal entry created using the create method.',
+
+            'is_active' => true, // Set the is_active status
+        ];
+
+        $journal = Journal::create($request);
+
+        $this->assertNotNull($journal);
+    }
+
+    public function testUpdatedMethod()
+    {
+        $this->seed(JournalSeeder::class);
+
+        $request = [
+            'title' => 'Updated Journal Entry',
+            'content' => 'This is the updated content of my first journal entry.',
+            'is_active' => true, // Ensure is_active is set to true
+        ];
+
+
+        $journal = Journal::find('1');
+        $journal->fill($request);
+        $result = $journal->save();
+
+        $this->assertNotNull($journal->id);
+    }
+
+    public function testSOftDeletes()
+    {
+        $this->seed(JournalSeeder::class);
+
+        $journal = Journal::where('id', '1')->first();
+        $journal->delete();
+
+        $journal = Journal::where('id', '1')->first();
+        $this->assertNull($journal);
+
+        $journal = Journal::withTrashed()->where('id', '1')->first();
+        $this->assertNotNull($journal);
+
+        
+       
+    }
+
+    public function testGlobalScope()
+    {
+        $journals = new Journal();
+        $journals->id = '10';
+        $journals->title = 'Global Scope Journal';
+        $journals->is_active = false; // Set is_active to true
+
+        $journals->save();
+
+        $journals = Journal::find('10');
+        $this->assertNull($journals); // Should be null due to global scope filtering
+
+        $journals = Journal::withoutGlobalScope(IsActiveScope::class)->find('10');
+        $this->assertNotNull($journals); // Should not be null when global scope is removed
+
+    }
+
+    public function testLocalScope()
+    {
+        $journals = new Journal();
+        $journals->id = '11';
+        $journals->title = 'Local Scope Journal';
+        $journals->is_active = true; // Set is_active to false
+        $journals->local_is_active = true; // Set is_active to true
+    
+        $journals->save();
+
+        $total = Journal::active()->count();
+        $this->assertEquals(1, $total); // Should return 1 active
+
+        $total = Journal::nonActive()->count();
+        $this->assertEquals(0, $total); // Should return 0 non-active
     }
 
 

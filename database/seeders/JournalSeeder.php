@@ -18,6 +18,7 @@ class JournalSeeder extends Seeder
         $journals->id = '1'; // UUID can be generated automatically if you set it in the model
         $journals->title = 'My First Journal Entry';
         $journals->content = 'This is the content of my first journal entry.';
+        $journals->is_active = true; // Set the is_active status
         $journals->save();
     }
 }
