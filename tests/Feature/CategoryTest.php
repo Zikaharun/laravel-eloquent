@@ -101,5 +101,26 @@ class CategoryTest extends TestCase
 
         $this->assertCount(1, $products);
     }
+
+    public function testQueryingRelationsAggregate()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class]);
+
+        $category = Category::find('1');
+        $totalProduct = $category->products()->count();
+
+        $this->assertEquals(2, $totalProduct);
+    }
+
+    public function testEloquentCollection()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class]);
+
+        $products = Product::get();
+        $this->assertCount(2, $products);
+
+        $products = $products->toQuery()->where('price', '=', 100.00)->get();
+        $this->assertCount(1, $products);
+    }
 }
 

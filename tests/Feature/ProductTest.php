@@ -12,6 +12,7 @@ use Database\Seeders\TagSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ProductTest extends TestCase
@@ -86,5 +87,29 @@ class ProductTest extends TestCase
             $this->assertNotNull($tag->id);
             $this->assertNotNull($tag->name);
         }
+    }
+
+    public function testSerialization()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class]);
+
+        $products = Product::get();
+        $this->assertCount(2, $products);
+
+        $json = $products->toJson(JSON_PRETTY_PRINT);
+        Log::info($json);
+    }
+
+     public function testSerializationRelation()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class, ImageSeeder::class]);
+
+        $products = Product::get();
+
+        $products->load(['category', 'image']);
+        $this->assertCount(2, $products);
+
+        $json = $products->toJson(JSON_PRETTY_PRINT);
+        Log::info($json);
     }
 }

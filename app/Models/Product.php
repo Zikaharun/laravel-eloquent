@@ -15,6 +15,10 @@ class Product extends Model
     public $incrementing = false; // Set to false if the primary key is not auto
     public $timestamps = true; // Enable timestamps if you want to use created_at and updated_at fields
 
+    protected $hidden = [
+        'category_id'
+    ];
+
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id', 'id');
